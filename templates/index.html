@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>D&D Character Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: 'EB Garamond', serif;
+      background-color: #f4f1ed;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #0ab0da;
+    }
+    label, select {
+      display: block;
+      margin: 10px auto;
+      text-align: center;
+    }
+    #generateBtn, #downloadBtn {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      background-color: #1357af;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #downloadBtn {
+      display: none;
+      background-color: #0b2d55;
+    }
+    .character-box {
+      margin-top: 30px;
+      padding: 20px;
+      border: 2px solid #1357af;
+      border-radius: 10px;
+      background-color: #fff;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .modal-content {
+     background-color: #fff;
+     padding: 20px;
+     border-radius: 10px;
+     width: 90%;
+     max-width: 500px;
+     position: absolute;
+     top: 80%;
+     left: 80%;
+     transform: translate(-50%, -50%);
+     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .max-level-preview {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid #ccc;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Panda's D&D Character Generator</h1>
+  <div id="intro" style="max-width: 700px; margin: 0 auto 20px auto; text-align: center; font-size: 18px; color: #444;">
+    <p>
+      Welcome to the Pandas Character Generator— a creative tool designed to instantly generate unique, lore-inspired characters for your tabletop adventures. 
+      Whether you're a player short on prep time or a DM seeking quick NPCs, this generator crafts compelling characters complete with appearance, stats, and backstories.
+    </p>
+    <p>
+      Explore new ideas, spark creativity, and bring your game world to life with just one click.
+    </p>
+  </div>
+
+  <label for="level">Select Character Level:</label>
+  <select id="level">
+    <option value="1">Level 1</option>
+    <option value="2">Level 2</option>
+    <option value="3">Level 3</option>
+    <option value="4">Level 4</option>
+    <option value="5">Level 5</option>
+    <option value="6">Level 6</option>
+    <option value="7">Level 7</option>
+    <option value="8">Level 8</option>
+    <option value="9">Level 9</option>
+    <option value="10">Level 10</option>
+    <option value="11">Level 11</option>
+    <option value="12">Level 12</option>
+  </select>
+
+  <label for="personalItem">Choose a personal item:</label>
+  <select id="personalItem">
+    <option value="a silver locket with a faded portrait">A silver locket with a faded portrait</option>
+    <option value="a charm bracelet from a lost sibling">A charm bracelet from a lost sibling</option>
+    <option value="a weathered book of ancient prayers">A weathered book of ancient prayers</option>
+    <option value="a rune-inscribed dagger hidden in their boot">A rune-inscribed dagger hidden in their boot</option>
+    <option value="a wooden token carved with their tribe's emblem">A wooden token carved with their tribe's emblem</option>
+    <option value="a necklace bearing the symbol of their deity">A necklace bearing the symbol of their deity</option>
+    <option value="a coin from a forgotten land they dream about">A coin from a forgotten land they dream about</option>
+    <option value="a bloodstained letter they never opened">A bloodstained letter they never opened</option>
+  </select>
+
+  <button id="generateBtn">Generate Character</button>
+  <button id="downloadBtn">Download as PDF</button>
+
+  <div id="characterDisplay" class="character-box"></div>
+
+  <script>
+    document.getElementById("generateBtn").addEventListener("click", () => {
+      const level = document.getElementById("level").value;
+      const personalItem = document.getElementById("personalItem").value;
+
+      fetch(`/generate?level=${level}&personal_item=${encodeURIComponent(personalItem)}`)
+        .then(response => response.json())
+        .then(data => {
+          const display = `
+            <h2>${data.name}</h2>
+            <p><strong>Race:</strong> ${data.race}</p>
+            <p><strong>Class:</strong> ${data.class} (${data.subclass})</p>
+            <p><strong>Gender:</strong> ${data.gender}</p>
+            <p><strong>Background:</strong> ${data.background}</p>
+            <p><strong>Appearance:</strong> ${data.appearance}</p>
+            <p><strong>Theme:</strong> ${data.theme.name}</p>
+            <p><strong>Personal Item:</strong> ${data.personal_item}</p>
+            <p><strong>Stats:</strong></p>
+            <ul>
+              ${Object.entries(data.stats).map(([stat, value]) => {
+                const maxValue = data.max_stats?.[stat];
+                return `<li>${stat}: ${value}${maxValue ? ` (Max: ${maxValue})` : ""}</li>`;
+              }).join("")}
+            </ul>
+            <p><strong>HP Range (Worst–Best):</strong> ${data.hp_range}</p>
+            <p><strong>Constitution Modifier:</strong> ${data.con_mod >= 0 ? "+" + data.con_mod : data.con_mod}</p>
+            <p><strong>Backstory:</strong> ${data.backstory}</p>
+            ${data.max_level_stats ? `
+            <div class="max-level-preview">
+              <h3>Max Level Preview (Level 12)</h3>
+              <ul>
+                ${Object.entries(data.max_level_stats).map(([stat, value]) => `<li>${stat}: ${value}</li>`).join("")}
+              </ul>
+              <p><strong>Max HP Range (Level 12):</strong> ${data.max_level_hp_range}</p>
+            </div>` : ""}
+          `;
+          document.getElementById("characterDisplay").innerHTML = display;
+
+          const downloadBtn = document.getElementById("downloadBtn");
+          downloadBtn.style.display = "block";
+          downloadBtn.onclick = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const text = `
+${data.name}
+Race: ${data.race}
+Class: ${data.class} (${data.subclass})
+Gender: ${data.gender}
+Background: ${data.background}
+Theme: ${data.theme.name}
+Personal Item: ${data.personal_item}
+Appearance: ${data.appearance}
+
+Stats:
+${Object.entries(data.stats).map(([k, v]) => `${k}: ${v}`).join("\n")}
+Constitution Modifier: ${data.con_score}
+HP Range (Worst–Best): ${data.hp_range}
+
+Backstory:
+${data.backstory}
+            `;
+            const lines = doc.splitTextToSize(text, 180);
+            doc.text(lines, 10, 10);
+            doc.save(`${data.name.replace(/ /g, "_")}_Character.pdf`);
+          };
+        });
+    });
+  </script>
+  <footer style="text-align: right;">
+  <a href="/contact"><button style="background-color: #225ca8; color: white;">Contact</button></a>
+</footer>
+</body>
+</html>
