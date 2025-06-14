@@ -1,4 +1,4 @@
-﻿aclick==8.1.7
+﻿click==8.1.7
 Flask==2.3.3
 gunicorn==21.2.0
 itsdangerous==2.1.2
